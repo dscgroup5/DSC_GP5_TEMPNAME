@@ -3,6 +3,8 @@ import whisper
 from streamlit_mic_recorder import mic_recorder
 import os
 from pages.chatbot_api import generate_chatbot_response, generate_image
+import ctypes
+libc = ctypes.CDLL("msvcrt.dll")  # Windows C library
 
 
 # Set Page Configuration (must be the first Streamlit command)
@@ -49,19 +51,19 @@ if "user_input" not in st.session_state:
 username = st.session_state.get("username", "PlayerOne")  # Replace with actual session username
 st.markdown(f"<h2 style='text-align: center;'>Hey!!, how can I make your game interesting?</h2>", unsafe_allow_html=True)
 
-# Voice Recorder Section (Populates Text Input)
-st.write("Let's start a converstation..")
-audio_bytes = mic_recorder(start_prompt="🎙️", stop_prompt="Stop Recording")
+# # Voice Recorder Section (Populates Text Input)
+# st.write("Let's start a converstation..")
+# audio_bytes = mic_recorder(start_prompt="🎙️", stop_prompt="Stop Recording")
 
-# Process Voice Input
-if audio_bytes:  # Check if mic_recorder returned audio data
-    st.info("Processing your voice input...")
-    try:
-        audio_data = audio_bytes['bytes']
-        transcription = transcribe_audio(audio_data)
-        st.session_state["user_input"] = transcription  # Populate session state
-    except Exception as e:
-        st.error(f"Error during transcription: {e}")
+# # Process Voice Input
+# if audio_bytes:  # Check if mic_recorder returned audio data
+#     st.info("Processing your voice input...")
+#     try:
+#         audio_data = audio_bytes['bytes']
+#         transcription = transcribe_audio(audio_data)
+#         st.session_state["user_input"] = transcription  # Populate session state
+#     except Exception as e:
+#         st.error(f"Error during transcription: {e}")
 
 # Text Input Section (Populated by Voice Command)
 user_input = st.text_input(
