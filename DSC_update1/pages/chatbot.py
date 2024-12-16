@@ -9,33 +9,19 @@ from huggingface_hub import InferenceClient
 client = InferenceClient(api_key="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")
 genai.configure(api_key="AIzaSyDgl2r7EC09IWQR0ZepGw2V0Ny1Bd0w9tY")
 
-# Chatbot Function
-def generate_response(prompt):
-    try:
-        generation_config = {
-            "temperature": 1,
-            "top_p": 0.95,
-            "top_k": 40,
-            "max_output_tokens": 8192,
-            "response_mime_type": "text/plain",
-        }
 
-        model = genai.GenerativeModel(
-            model_name="gemini-2.0-flash-exp",
-            generation_config=generation_config,
-        )
+generation_config = {
+    "temperature": 1,
+    "top_p": 0.95,
+    "top_k": 40,
+    "max_output_tokens": 8192,
+    "response_mime_type": "text/plain",
+}
 
-        response = model.generate_content(prompt)
-
-        if response and hasattr(response, 'candidates') and response.candidates:
-            output = str(response.candidates[0].content)
-            match = re.search(r'text:\s*"([^"]+)"', output)
-            return match.group(1).strip()  # Extracted text content and remove any extra whitespace
-
-        else:
-            return "No response generated."
-    except Exception as e:
-        return f"Error: {str(e)}"
+model = genai.GenerativeModel(
+    model_name="gemini-2.0-flash-exp",
+    generation_config=generation_config,
+)
 
 # Image Generation Function
 def generate_image(prompt):
@@ -49,6 +35,12 @@ def generate_image(prompt):
             return f"Error: Unexpected output format. Expected a PIL Image."
     except Exception as e:
         return f"Error generating image: {str(e)}"
+
+def translate_role_for_streamlit(user_role):
+    if user_role == "model":
+        return "assistant"
+    else:
+        return user_role
 
 # Streamlit UI
 st.set_page_config(page_title="AI Assistant", page_icon="🤖", layout="centered")
@@ -90,18 +82,28 @@ with st.sidebar:
 # Chatbot UI
 if feature == "Chatbot":
     set_background("https://www.shutterstock.com/image-vector/3d-vector-robot-chatbot-ai-600nw-2301916351.jpg") 
+    if "chat_session" not in st.session_state:
+        st.session_state.chat_session = model.start_chat(history=[])
+
     st.subheader("Chat with AI 🤖")
-    user_prompt = st.text_area("Enter your message:", placeholder="Type something...")
-    if st.button("Send"):
-        if user_prompt.strip():
-            st.info("Processing your message...")
-            response = generate_response(user_prompt.strip())
-            if response:
-                st.success(f"AI Response: {response}")
-            else:
-                st.warning("No response generated. Please try again.")
-        else:
-            st.warning("Please provide a message.")
+
+    # Display the chat history
+    for message in st.session_state.chat_session.history:
+        with st.chat_message(translate_role_for_streamlit(message.role)):
+            st.markdown(message.parts[0].text)
+
+    # Input field for user's message
+    user_prompt = st.chat_input("Ask Chatbot...")
+    if user_prompt:
+        # Add user's message to chat and display it
+        st.chat_message("user").markdown(user_prompt)
+
+        # Send user's message to Gemini-Pro and get the response
+        gemini_response = st.session_state.chat_session.send_message(user_prompt)
+
+        # Display Gemini-Pro's response
+        with st.chat_message("assistant"):
+            st.markdown(gemini_response.text)
 
 # Image Generation UI
 elif feature == "Image Generation":
