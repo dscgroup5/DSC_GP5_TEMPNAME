@@ -1,0 +1,5 @@
+streamlit
+openai-whisper
+huggingface_hub
+pillow
+google-generativeai
