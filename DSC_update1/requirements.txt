@@ -1,5 +1,6 @@
 streamlit
 openai-whisper
+firebase_admin
 huggingface_hub
 pillow
 google-generativeai
