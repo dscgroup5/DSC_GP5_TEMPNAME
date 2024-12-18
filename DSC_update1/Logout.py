@@ -30,7 +30,7 @@ st.markdown(
 page_bg_img = """
 <style>
 [data-testid="stAppViewContainer"] {
-    background: url('https://wallpaperaccess.com/full/3713231.jpg') no-repeat center center fixed;
+    background: url('https://images.unsplash.com/photo-1496303861503-f6ec4e50034e?q=80&w=1769&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D') no-repeat center center fixed;
     background-size: cover;
 }
 
