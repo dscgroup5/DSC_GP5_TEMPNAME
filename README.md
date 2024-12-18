@@ -1,16 +1,4 @@
 
-# Interactive Storytelling Application
-
-An interactive storytelling application that generates unique, engaging stories based on user-provided prompts. It enhances the stories with text-to-video or text-to-image features for a visually immersive experience.
-
-## Key Features (PROPOSED) :
-- **Prompt-Based Story Generation**: Users can input their own prompt for the story or select from predefined themes.
-- **Text-to-Video/Image Generation**: Create short videos and illustrative images dynamically to match the narrative.
-- **Interactive Storytelling**: Users can choose different scenarios or directions to add new characters, elements, etc., mid-story.
-- **Collaborative Mode**: Combine different parts of a story or co-create stories with other users.
-- **Voice Narration**: Narrate the story with a user-selected voice model.
-
-## Installation:
 
 1. **Clone the repository**:
    ```bash
