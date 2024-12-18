@@ -4,3 +4,10 @@ firebase_admin
 huggingface_hub
 pillow
 google-generativeai
+requests
+moviepy
+gtts
+python-dotenv
+torch
+diffusers
+imageio
