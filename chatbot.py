@@ -52,51 +52,31 @@ def generate_video(prompt):
     st.info("Generating video... Please wait.")
     
     # Generate video frames
-    video_frames = pipe(prompt, num_inference_steps=25, num_frames=100).frames
+    video_frames = pipe(prompt, num_inference_steps=25).frames
     
     # Create a temporary directory to store frames
     temp_dir = "temp_frames"
     os.makedirs(temp_dir, exist_ok=True)
-
-    # Frame rate and target duration
-    frame_rate = 24
-    target_duration = 5  # in seconds
-    target_frame_count = frame_rate * target_duration
-
-    # Get the total number of available frames in the batch
-    available_frames = len(video_frames[0])  # Assuming batch size of 1
-
-    # Calculate how many times to repeat the frames to reach the target
-    repeat_factor = target_frame_count // available_frames
-    extra_frames = target_frame_count % available_frames
-
-    # Repeat and extend the frames
-    extended_frames = np.concatenate(
-        [video_frames[0]] * repeat_factor + [video_frames[0][:extra_frames]]
-    )
-
-    # Save each frame as an image file
-    for i, frame in enumerate(extended_frames):
+    
+    # Save frames as images
+    for i, frame in enumerate(video_frames[0]):
         frame_path = os.path.join(temp_dir, f"frame_{i:04d}.png")
-
-        # Convert frame to uint8 before saving
-        frame = (frame * 255).astype(np.uint8)
-
+        frame = (frame * 255).astype(np.uint8)  # Ensure uint8 format
         imageio.imwrite(frame_path, frame)
-
-    # Construct FFmpeg command
+    
+    # FFmpeg command to compile frames into a video
     output_filename = "output.mp4"
     ffmpeg_command = [
         "ffmpeg",
-        "-framerate", str(frame_rate),  # Set frame rate
-        "-i", os.path.join(temp_dir, "frame_%04d.png"),  # Input pattern
-        "-c:v", "libx264",  # Video codec
-        "-pix_fmt", "yuv420p",  # Pixel format
-        "-crf", "18",  # Constant Rate Factor (adjust for quality/size)
-        "-y",  # Overwrite output file if it exists
-        output_filename,  # Output filename
+        "-framerate", "24",
+        "-i", os.path.join(temp_dir, "frame_%04d.png"),
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-crf", "18",
+        "-y",
+        output_filename,
     ]
-
+    
     # Run FFmpeg command
     process = subprocess.run(ffmpeg_command, capture_output=True, text=True)
     
