@@ -13,3 +13,4 @@ diffusers
 imageio
 transformers
 accelerate
+pyrebase4
