@@ -1,14 +1,17 @@
 import streamlit as st
-from PIL import Image
-import requests
 import os
+import subprocess
+import numpy as np
+import imageio
+from PIL import Image
 import google.generativeai as genai
-import re
+from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler
+import torch
 from huggingface_hub import InferenceClient
 
+# Initialize models and APIs
 client = InferenceClient(api_key="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")
 genai.configure(api_key="AIzaSyDgl2r7EC09IWQR0ZepGw2V0Ny1Bd0w9tY")
-
 
 generation_config = {
     "temperature": 1,
@@ -23,12 +26,20 @@ model = genai.GenerativeModel(
     generation_config=generation_config,
 )
 
-# Image Generation Function
+# Load Text-to-Video Pipeline
+pipe = DiffusionPipeline.from_pretrained(
+    "damo-vilab/text-to-video-ms-1.7b",
+    torch_dtype=torch.float16,
+    variant="fp16"
+)
+pipe.scheduler = DPMSolverMultistepScheduler.from_config(pipe.scheduler.config)
+pipe.enable_model_cpu_offload()
+
+# Function for generating an image
 def generate_image(prompt):
     try:
         # Use the text-to-image function
         image = client.text_to_image(prompt)
-        # Ensure the image is in PIL format, and then return it
         if isinstance(image, Image.Image):
             return image
         else:
@@ -36,18 +47,58 @@ def generate_image(prompt):
     except Exception as e:
         return f"Error generating image: {str(e)}"
 
-def translate_role_for_streamlit(user_role):
-    if user_role == "model":
-        return "assistant"
+# Function to generate video frames
+def generate_video(prompt):
+    st.info("Generating video... Please wait.")
+    
+    # Generate video frames
+    video_frames = pipe(prompt, num_inference_steps=25).frames
+    
+    # Create a temporary directory to store frames
+    temp_dir = "temp_frames"
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Save frames as images
+    for i, frame in enumerate(video_frames[0]):
+        frame_path = os.path.join(temp_dir, f"frame_{i:04d}.png")
+        frame = (frame * 255).astype(np.uint8)  # Ensure uint8 format
+        imageio.imwrite(frame_path, frame)
+    
+    # FFmpeg command to compile frames into a video
+    output_filename = "output.mp4"
+    ffmpeg_command = [
+        "ffmpeg",
+        "-framerate", "24",
+        "-i", os.path.join(temp_dir, "frame_%04d.png"),
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-crf", "18",
+        "-y",
+        output_filename,
+    ]
+    
+    # Run FFmpeg command
+    process = subprocess.run(ffmpeg_command, capture_output=True, text=True)
+    
+    # Handle success or failure
+    if process.returncode == 0:
+        st.success(f"Video successfully generated! You can download it below:")
+        st.video(output_filename)
     else:
-        return user_role
+        st.error("Error generating video.")
+        st.error(process.stderr)
+    
+    # Clean up temporary frames
+    import shutil
+    shutil.rmtree(temp_dir)
+    
+    # Free GPU memory
+    torch.cuda.empty_cache()
 
 # Streamlit UI
 st.set_page_config(page_title="AI Assistant", page_icon="🤖", layout="centered")
 
 # Background Styling
-import streamlit as st
-
 def set_background(image_url):
     page_bg_img = f"""
     <style>
@@ -66,18 +117,17 @@ def set_background(image_url):
         color: white;
     }}
     </style>
-    """
-    st.markdown(page_bg_img, unsafe_allow_html=True)
 
+    st.markdown(page_bg_img, unsafe_allow_html=True)
 
 # Page Header
 st.title("AI Assistant 🤖")
-st.markdown("### A smart assistant for text and image generation.")
+st.markdown("### A smart assistant for text, image, and video generation.")
 
 # Sidebar with App Features
 with st.sidebar:
     st.header("Features")
-    feature = st.radio("Select a feature:", ["Chatbot", "Image Generation"], index=0)
+    feature = st.radio("Select a feature:", ["Chatbot", "Image Generation", "Text-to-Video"], index=0)
 
 # Chatbot UI
 if feature == "Chatbot":
@@ -89,7 +139,7 @@ if feature == "Chatbot":
 
     # Display the chat history
     for message in st.session_state.chat_session.history:
-        with st.chat_message(translate_role_for_streamlit(message.role)):
+        with st.chat_message("assistant" if message.role == "model" else "user"):
             st.markdown(message.parts[0].text)
 
     # Input field for user's message
@@ -120,3 +170,14 @@ elif feature == "Image Generation":
                 st.error(image)
         else:
             st.warning("Please provide an image description.")
+
+# Text-to-Video Generation UI
+elif feature == "Text-to-Video":
+    set_background("https://example.com/video-background.jpg")  # Set appropriate background
+    st.subheader("Generate Videos 🎬")
+    video_prompt = st.text_area("Enter a description for the video:", placeholder="Describe the video...")
+    if st.button("Generate Video"):
+        if video_prompt.strip():
+            generate_video(video_prompt.strip())
+        else:
+            st.warning("Please provide a video description.")
