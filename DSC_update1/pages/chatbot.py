@@ -8,10 +8,13 @@ import google.generativeai as genai
 from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler
 import torch
 from huggingface_hub import InferenceClient
+import dotenv
 
-# Initialize models and APIs
-client = InferenceClient(api_key="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")
-genai.configure(api_key="AIzaSyDgl2r7EC09IWQR0ZepGw2V0Ny1Bd0w9tY")
+dotenv.load_dotenv()
+gemini_api_key = os.getenv("GOOGLE_API_KEY")  
+hf_api_key = os.getenv("HF_API_KEY")         
+client = InferenceClient(api_key=hf_api_key)
+genai.configure(api_key=gemini_api_key)
 
 generation_config = {
     "temperature": 1,
